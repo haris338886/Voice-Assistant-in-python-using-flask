@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #dfe9f3 0%, #ffffff 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 18px;
+            border: none;
+            border-radius: 30px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #userText, #response {
+            font-size: 1.2rem;
+            margin-top: 25px;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        #response {
+            color: #2ecc71;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .mic-animation {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(76, 175, 80, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎙️ Voice Assistant</h1>
+    <button id="listenBtn" onclick="startListening()">Start Listening</button>
+    <p id="userText">You said: ...</p>
+    <p id="response">Response: ...</p>
+
+    <script>
+        function startListening() {
+            const button = document.getElementById("listenBtn");
+            button.classList.add("mic-animation");
+            button.innerText = "Listening...";
+
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById("userText").innerText = "You said: " + transcript;
+
+                fetch("/process", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ command: transcript })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const reply = data.response;
+                    document.getElementById("response").innerText = "Response: " + reply;
+
+                    const utterance = new SpeechSynthesisUtterance(reply);
+                    speechSynthesis.speak(utterance);
+                });
+
+                button.classList.remove("mic-animation");
+                button.innerText = "Start Listening";
+            };
+
+            recognition.onerror = function(event) {
+                document.getElementById("response").innerText = "Error: " + event.error;
+                button.classList.remove("mic-animation");
+                button.innerText = "Start Listening";
+            };
+        }
+    </script>
+</body>
+</html>
